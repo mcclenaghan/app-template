@@ -1,0 +1,17 @@
+import { SignUp } from "@clerk/nextjs";
+
+export default function Page() {
+  return (
+    <main
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#0a0a0b",
+      }}
+    >
+      <SignUp />
+    </main>
+  );
+}

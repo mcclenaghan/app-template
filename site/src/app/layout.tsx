@@ -21,7 +21,12 @@ export const viewport: Viewport = {
 // so the TLS handshake starts in parallel with Next.js chunk downloads.
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      signInFallbackRedirectUrl="/"
+      signUpFallbackRedirectUrl="/"
+    >
       <html lang="en">
         <head>
           <link rel="preconnect" href="https://clerk.mcclenaghan.uk" crossOrigin="anonymous" />
