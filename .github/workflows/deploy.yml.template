@@ -1,0 +1,99 @@
+name: deploy
+
+# CI-driven deploys for the {{APP_SLUG}} Vercel project.
+#
+# Why this exists: the mcclenaghan Vercel team is on the Hobby plan, which
+# refuses to connect a Vercel project to a private GitHub repo owned by an
+# organization. Native git webhooks don't fire for this repo, so this
+# workflow replaces them:
+#
+#   1. `vercel pull` — fetch project settings + production env vars using
+#      the VERCEL_API_TOKEN repo secret (installed by
+#      `scripts/ci-set-secret.sh --repo mcclenaghan/{{APP_SLUG}}` in the
+#      mcclenaghan-app checkout).
+#   2. `vercel build --prod` — build locally in the runner. Run from the
+#      repo root so Vercel's server-side `rootDirectory="site"` setting
+#      resolves correctly (running from ./site would double-prepend).
+#   3. `vercel deploy --prebuilt --prod` — upload the built output as a
+#      production deployment; `--prebuilt` tells Vercel to skip the clone
+#      step and just host what we uploaded.
+#
+# If/when the Vercel team upgrades to Pro (or the repo becomes public and
+# Vercel accepts the link on Hobby), drop this workflow and re-link via
+# the UI so native per-PR preview deployments return.
+#
+# See mcclenaghan-app docs/new-app.md for how this file is wired in during
+# sub-app bootstrap. The template ships as `deploy.yml.template` (ignored
+# by GitHub Actions) with `VERCEL_PROJECT_ID_PLACEHOLDER` inside; during
+# bootstrap the script resolves the real Vercel project id, renames the
+# file to `deploy.yml`, and commits+pushes it. See scripts/new-app.sh
+# step "Wire CI deploy" and scripts/ci-set-secret.sh.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "24"
+  # Identify the Vercel project without needing `vercel link` on the runner.
+  # (orgId is the mcclenaghan team; projectId is {{APP_SLUG}}.)
+  VERCEL_ORG_ID: team_fZWMZsgA01wpbZs83hBNMzuC
+  VERCEL_PROJECT_ID: VERCEL_PROJECT_ID_PLACEHOLDER
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull project + production env
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::VERCEL_API_TOKEN secret is missing; run scripts/ci-set-secret.sh --repo ${{ github.repository }} from the mcclenaghan-app checkout" >&2
+            exit 1
+          fi
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build (locally)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy prebuilt output to production
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_API_TOKEN }}
+        run: |
+          url=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          echo "Deployed to: $url"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Summary
+        run: |
+          {
+            echo "### Production deploy"
+            echo
+            echo "- Project: \`{{APP_SLUG}}\`"
+            echo "- URL: ${{ steps.deploy.outputs.url }}"
+            echo "- Commit: \`${{ github.sha }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
