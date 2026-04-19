@@ -1,17 +1,10 @@
 import { SignIn } from "@clerk/nextjs";
+import { AuthShell } from "../../../components/auth-shell";
 
 export default function Page() {
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#0a0a0b",
-      }}
-    >
+    <AuthShell title="Sign in" subtitle="Use your Google account to continue.">
       <SignIn />
-    </main>
+    </AuthShell>
   );
 }
