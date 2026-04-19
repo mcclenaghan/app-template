@@ -1,0 +1,12 @@
+node_modules/
+.next/
+.vercel/
+out/
+
+.env
+.env.*
+!.env.example
+.envrc.local
+
+.DS_Store
+*.log

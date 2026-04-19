@@ -1,0 +1,14 @@
+# Copy to .envrc.local (gitignored) and fill in.
+#
+# Most tokens come from `make env-pull` (Vercel team-shared env).
+# Put ONLY overrides or machine-local secrets here.
+#
+# VERCEL_API_TOKEN is normally read from the Vercel CLI's auth.json
+# (see .envrc). Only set it here if you want to impersonate a
+# different Vercel account for this repo.
+
+# export VERCEL_API_TOKEN=vca_...
+
+# VERCEL_TEAM_ID is the `team_...` id of the mcclenaghan team. Shown
+# in Vercel → Settings → General.
+# export VERCEL_TEAM_ID=team_...
