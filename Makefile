@@ -17,8 +17,11 @@ help:
 
 env-pull:
 	@command -v vercel >/dev/null || { echo "Install vercel CLI: npm i -g vercel"; exit 1; }
-	cd site && vercel link --yes --scope mcclenaghan --project "{{APP_SLUG}}"
-	cd site && vercel env pull --environment=development --yes .env.development.local
+	# Link at the REPO ROOT, not site/: Vercel's root_directory is "site"
+	# so the CLI must receive the whole repo and descend into site/ to build.
+	# Linking inside site/ makes `vercel deploy` look for site/site.
+	vercel link --yes --scope mcclenaghan --project "{{APP_SLUG}}"
+	vercel env pull --environment=development --yes site/.env.development.local
 	@cp site/.env.development.local .env
 	@echo "✓ wrote .env from Vercel project {{APP_SLUG}} (development scope)"
 
