@@ -6,6 +6,9 @@ out/
 .env
 .env.*
 !.env.example
+# .env.production holds only committed PUBLIC build-time paths
+# (NEXT_PUBLIC_CLERK_SIGN_*_URL = /sign-in etc.). No secrets.
+!.env.production
 .envrc.local
 
 .DS_Store
