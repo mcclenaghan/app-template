@@ -1,6 +1,9 @@
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
+import { UserButton } from "@clerk/nextjs";
 
-export default function Home() {
+export default async function Home() {
+  const { userId } = await auth();
+
   return (
     <main
       style={{
@@ -17,14 +20,14 @@ export default function Home() {
     >
       <h1 style={{ margin: 0 }}>{{APP_NAME}}</h1>
       <p style={{ margin: 0, opacity: 0.7 }}>{{APP_DESC}}</p>
-      <SignedIn>
+      {userId ? (
         <UserButton afterSignOutUrl="/" />
-      </SignedIn>
-      <SignedOut>
+      ) : (
         <p style={{ opacity: 0.6, fontSize: "0.875rem" }}>
-          You are signed in via Clerk at <code>clerk.mcclenaghan.uk</code>.
+          Sign in at <code>clerk.mcclenaghan.uk</code> (SSO across
+          *.mcclenaghan.uk).
         </p>
-      </SignedOut>
+      )}
     </main>
   );
 }
