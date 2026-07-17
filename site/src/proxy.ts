@@ -19,6 +19,12 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
  * UI same-origin side-steps the whole class of issue and mirrors how
  * `career.mcclenaghan.uk` already works.
  *
+ * `/icon` and `/apple-icon` are the build-time favicon routes generated
+ * from `src/app/icon.tsx` / `apple-icon.tsx`. They have no file
+ * extension, so the static-asset matcher below doesn't skip them —
+ * without this exemption the browser's favicon fetch gets 307'd to
+ * /sign-in and the tab shows no icon.
+ *
  * New apps usually start private; drop the redirect (keep clerkMiddleware
  * for auth context) to make the app public. See mcclenaghan-app's own
  * proxy.ts for a public example.
@@ -28,6 +34,8 @@ const isPublic = createRouteMatcher([
   "/sign-up(.*)",
   "/api/health",
   "/.well-known/(.*)",
+  "/icon",
+  "/apple-icon",
 ]);
 
 export default clerkMiddleware(
