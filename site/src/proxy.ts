@@ -1,8 +1,15 @@
+import { checkEstateMembership } from "@/lib/acl";
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 /**
- * Require Clerk sign-in for every route except the sign-in / sign-up
- * pages themselves, the health check, and `.well-known` resources.
+ * Require McClenaghan-org membership (the estate ACL — see
+ * mcclenaghan-app ADR-0015) for every route except the sign-in /
+ * sign-up pages themselves, the health check, `/request-access`, and
+ * `.well-known` resources. Sign-up on the shared Clerk instance is
+ * open, so "signed in" alone is NOT an access grant: signed-in
+ * non-members land on /request-access. Membership is managed from
+ * mcclenaghan-app (`make clerk-org-invite EMAIL=…`), never per-repo.
  *
  * `.well-known/*` MUST stay public even on a brand-new app so the
  * Android TWA hub (uk.mcclenaghan.app) can verify Digital Asset Links
@@ -32,6 +39,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 const isPublic = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/request-access",
   "/api/health",
   "/.well-known/(.*)",
   "/icon",
@@ -41,8 +49,14 @@ const isPublic = createRouteMatcher([
 export default clerkMiddleware(
   async (auth, req) => {
     if (isPublic(req)) return;
-    const { userId, redirectToSignIn } = await auth();
+    const { userId, orgId, redirectToSignIn } = await auth();
     if (!userId) return redirectToSignIn({ returnBackUrl: req.url });
+    // Fast path is a session-claim comparison (active org === estate org);
+    // the Backend API fallback only fires for sessions without an active
+    // org. With CLERK_ESTATE_ORG_ID unset this allows any signed-in user.
+    if (!(await checkEstateMembership(userId, orgId))) {
+      return NextResponse.redirect(new URL("/request-access", req.url));
+    }
   },
   { signInUrl: "/sign-in", signUpUrl: "/sign-up" },
 );

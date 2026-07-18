@@ -19,10 +19,20 @@ before changing auth / DNS wiring.
 This repo owns only:
 
 - The Next.js app in `site/`.
-- Per-app user gating (e.g. an email allow-list; see
-  `jamie-career`'s `SITE_ALLOWED_EMAILS` pattern for a worked
-  example).
-- The middleware in `site/src/proxy.ts` (Clerk matcher tweaks).
+- The middleware in `site/src/proxy.ts` (Clerk matcher tweaks). Access
+  control is NOT per-repo: the gate requires membership of the
+  McClenaghan Clerk org via `checkEstateMembership()` in
+  `site/src/lib/acl.ts` (mcclenaghan-app ADR-0015). Grant/revoke
+  access from mcclenaghan-app: `make clerk-org-invite EMAIL=…` /
+  `make clerk-org-revoke EMAIL=…`. Signed-in non-members land on
+  `/request-access`.
+- Plan/feature **gates** (`has({ plan })` / `has({ feature })`) and the
+  pricing page at `site/src/app/pricing/page.tsx`. The billing
+  **catalog** (plans, prices, features) and all Stripe admin live in
+  `mcclenaghan-app` (`config/billing.json`, `make billing-apply`,
+  `scripts/stripe-*.sh`) — never configure billing from this repo.
+  See mcclenaghan-app ADR-0013 + ADR-0014 and
+  `docs/stripe-operations.md`.
 
 ## 2. Guardrails
 
@@ -36,6 +46,13 @@ This repo owns only:
 - **Never** write Clerk env-vars to `site/.env.local` and commit
   them. `make env-pull` fetches them from Vercel team-shared env at
   runtime.
+- **Never** gate on unprefixed billing slugs. The Clerk billing
+  catalog is shared by every `*.mcclenaghan.uk` app; this app's plan
+  and feature slugs are always `{{APP_SLUG}}_<name>` (mcclenaghan-app
+  ADR-0013). `has({ plan: "pro" })` would match another app's plan.
+- **Never** bump `@clerk/nextjs` past the pinned version without
+  testing billing. The Billing APIs are experimental; the exact pin in
+  `site/package.json` is deliberate (mcclenaghan-app ADR-0014).
 
 ## 3. Running
 
